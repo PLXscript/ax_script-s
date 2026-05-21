@@ -1,4 +1,4 @@
-local ativo = false P
+local ativo = false 
 local intervalo = 3
 
 -- GUI
