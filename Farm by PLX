@@ -1,0 +1,94 @@
+local ativo = false P
+local intervalo = 3
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+local Botao = Instance.new("TextButton")
+
+ScreenGui.Parent = game.CoreGui
+Botao.Parent = ScreenGui
+
+Botao.Size = UDim2.new(0, 170, 0, 50)
+Botao.Position = UDim2.new(0, 20, 0, 100)
+Botao.Text = "AUTO: OFF"
+
+Botao.MouseButton1Click:Connect(function()
+    ativo = not ativo
+    Botao.Text = ativo and "AUTO: ON" or "AUTO: OFF"
+end)
+
+-- Ativar PvP
+local function ativarPVP()
+    for _,v in pairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") and string.find(v.Name:lower(), "pvp") then
+            pcall(function()
+                v:FireServer()
+            end)
+        end
+    end
+end
+
+-- Travar personagem (evitar ser despedaçado)
+local function travarPersonagem(char)
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics) -- trava tipo ragdoll
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+    end
+
+    for _,v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Velocity = Vector3.zero
+            v.RotVelocity = Vector3.zero
+        end
+    end
+end
+
+-- Matar sem explodir o corpo
+local function matarSeguro()
+    local player = game.Players.LocalPlayer
+    local char = player.Character
+
+    if char and char:FindFirstChild("Humanoid") then
+        travarPersonagem(char)
+
+        -- espera um pouco pra estabilizar
+        task.wait(0.5)
+
+        -- força morte limpa
+        char.Humanoid:TakeDamage(char.Humanoid.MaxHealth)
+    end
+end
+
+-- Quando spawnar
+game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
+    if ativo then
+        task.wait(0.5)
+
+        ativarPVP()
+        task.wait(0.8)
+
+        travarPersonagem(char) -- já trava antes
+        task.wait(0.5)
+
+        matarSeguro()
+    end
+end)
+
+-- Loop principal
+while true do
+    task.wait(intervalo)
+
+    if ativo then
+        ativarPVP()
+        task.wait(0.8)
+
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            travarPersonagem(char) -- evita ser arremessado
+            task.wait(0.5)
+
+            matarSeguro()
+        end
+    end
+end
